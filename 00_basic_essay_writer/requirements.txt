@@ -1,6 +1,9 @@
 python-dotenv
 langgraph
+langgraph-checkpoint-sqlite
 langchain-core
 langchain-openai
 tavily-python
 ipython
+pygraphviz
+gradio

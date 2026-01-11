@@ -10,7 +10,7 @@ import operator
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, AIMessage, ChatMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.pydantic_v1 import BaseModel
+from pydantic import BaseModel
 from tavily import TavilyClient
 import os
 import sqlite3
@@ -71,7 +71,11 @@ class ewriter():
         builder.add_edge("research_plan", "generate")
         builder.add_edge("reflect", "research_critique")
         builder.add_edge("research_critique", "generate")
-        memory = SqliteSaver(conn=sqlite3.connect(":memory:", check_same_thread=False))
+        #memory = SqliteSaver(conn=sqlite3.connect(":memory:", check_same_thread=False))
+
+        from langgraph.checkpoint.memory import MemorySaver
+        memory = MemorySaver()
+
         self.graph = builder.compile(
             checkpointer=memory,
             interrupt_after=['planner', 'generate', 'reflect', 'research_plan', 'research_critique']
@@ -272,7 +276,7 @@ class writer_gui( ):
         nnode = new_state.next
         return lnode,nnode,new_thread_ts,rev,count
     
-    def update_thread_pd(self,):
+    def update_thread_pd(self, threads):
         #print("update_thread_pd")
         return gr.Dropdown(label="choose thread", choices=threads, value=self.thread_id,interactive=True)
     
@@ -304,13 +308,14 @@ class writer_gui( ):
                 for state in self.graph.get_state_history(self.thread):
                     if state.metadata['step'] < 1:  #ignore early states
                         continue
-                    s_thread_ts = state.config['configurable']['thread_ts']
+                    #s_thread_ts = state.config['configurable']['thread_ts']
                     s_tid = state.config['configurable']['thread_id']
                     s_count = state.values['count']
                     s_lnode = state.values['lnode']
                     s_rev = state.values['revision_number']
                     s_nnode = state.next
-                    st = f"{s_tid}:{s_count}:{s_lnode}:{s_nnode}:{s_rev}:{s_thread_ts}"
+                    #st = f"{s_tid}:{s_count}:{s_lnode}:{s_nnode}:{s_rev}:{s_thread_ts}"
+                    st = f"{s_tid}:{s_count}:{s_lnode}:{s_nnode}:{s_rev}"
                     hist.append(st)
                 if not current_state.metadata: #handle init call
                     return{}
@@ -426,3 +431,8 @@ class writer_gui( ):
             self.demo.launch(share=True, server_port=int(port), server_name="0.0.0.0")
         else:
             self.demo.launch(share=self.share)
+
+if __name__ == "__main__":
+    ew = ewriter()
+    gui = writer_gui(ew.graph, share=True)
+    gui.launch()
